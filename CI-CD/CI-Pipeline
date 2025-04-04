@@ -1,0 +1,91 @@
+pipeline {
+
+    agent any
+
+    environment{
+        DockerHubUser = "yogesh2002"
+        ProjectName = "My_Test"
+    }
+
+    parameters{
+        string(name: 'TagName', defaultValue: 'V1.0', description: 'Image Tag')
+    }
+
+    stages{
+
+        stage("Clean"){
+            script{
+                wsclean()
+            }
+            echo "Workspace Cleaned Successfully..."
+        }
+
+        stage("Git Checkout"){
+            script{
+                code_checkout("", "main")
+            }
+            echo "Code Checkout Successfully..."
+        }
+
+        stage("Docker: Image Build"){
+            script{
+                docker_build(env.DockerHubUser, env.ProjectName, params.TagName)
+            }
+            echo "Docker Image Build Successfully..."
+        }
+
+        stage("Test"){
+            echo "Test Cases Runs Successfully..."
+        }
+
+        stage("Docker Image Push"){
+            script{
+                docker_push(env.ProjectName, params.TagName, env.DockerHubUser)
+            }
+            echo "Docker Image Push Successfully..."
+        }
+
+        stage("Deploy"){
+            script{
+                docoker_compose()
+            }
+            echo "Application Deployed Successfully..."
+        }
+
+    }
+    // Post Block will always runs after build finish, It is mainly used for cleanup, notifications, logging, and error handling
+
+     post {
+        success {
+            emailext subject: "Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                     body: "Good news! The build has passed.\n\nCheck details: ${env.BUILD_URL}",
+                     to: "harshalshukl2601@gmail.com",
+                     from: "yochaudhari2002@gmail.com"
+        }
+        failure {
+            emailext subject: "Build FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                     body: "Oops! The build has failed.\n\nCheck logs: ${env.BUILD_URL}",
+                     to: "harshalshukl2601@gmail.com",
+                     from: "yochaudhari2002@gmail.com"
+        }
+    }
+
+
+    //   post {
+    //     always {
+    //         echo "This runs no matter what (Success or Failure)."
+    //     }
+    //     success {
+    //         echo "Build succeeded!"
+    //     }
+    //     failure {
+    //         echo "Build failed! Notifying team..."
+    //     }
+    //     unstable {
+    //         echo "Build is unstable (e.g., some tests failed)."
+    //     }
+    //     changed {
+    //         echo "The build status changed from the previous run."
+    //     }
+    // }
+}
